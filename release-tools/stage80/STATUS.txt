@@ -1,0 +1,15 @@
+Stage80 built from bootable Stage79. Only product and ODM extents changed.
+Includes exact MTK PowerHAL to UniPerf read permission, BatteryAntiAging SC8585 read access,
+and the module-proven V11 MiCharge bridge with a no-root /data/vendor dynamic temperature policy.
+The stale /data/adb launcher is disabled. No boot/radio/security-sensitive partition changed.
+
+Runtime flash verification on 2026-11-11:
+- super flash completed 46/46 sparse chunks with all writes OKAY;
+- device booted with sys.boot_completed=1 and user data preserved;
+- IPerformance, IUrcc, ICharger and IMiCharge services registered;
+- k90-oplus-charger and k90-charge-daemon are running without Root.
+
+Release scripts:
+- START_FLASH.cmd: Stage48-style unified update/first-install/data/Root wizard;
+- 3_一键抓日志.cmd: live/history/full log collection.
+- Factory reset uses explicit F2FS userdata format plus metadata erase, not fastboot -w.

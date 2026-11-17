@@ -1,4 +1,4 @@
-param([int]$WaitSeconds=180)
+﻿param([int]$WaitSeconds=180)
 $ErrorActionPreference='Stop'
 # Resolve the verified package through the same explicit path as the flash.
 $Root='D:\K90Max_ColorOS17_完整迁移_20261028\01_主工程\K90_A17_PORT_WORK\delivery\K90Max_ColorOS17_Prague_KEEPDATA_Native_Stage45_UNIPERF_FAN'

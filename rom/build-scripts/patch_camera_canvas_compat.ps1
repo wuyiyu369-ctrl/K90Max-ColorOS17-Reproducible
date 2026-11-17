@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $root = 'D:\K90Max_ColorOS17_完整迁移_20261028\02_Codex完整工作区\wo\stage29_camera_apk\system_compat_test\classes3_smali2\com\android\camera\ui'
 $targets = @(

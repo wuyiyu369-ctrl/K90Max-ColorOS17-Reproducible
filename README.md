@@ -7,9 +7,11 @@
 - `docs/handoff/`：完整交接、当前进度、功能迁移边界。
 - `docs/audits/`：关键 Stage 的故障根因、SELinux、性能、相机、风扇审计。
 - `module/unified-ksu/`：当前统一 KernelSU 模块的文本源码和打包脚本。
+- `module/radio-registration-v2.1/`：Android 17 SIM `LOADED/READY` 兼容修复源码；实机结果仍需按设备验证。
 - `rom/build-scripts/`：镜像重建、补丁、审计和验证脚本。
 - `rom/native-bridges/`：性能、URCC、风扇与策略桥的原生源码。
 - `rom/metadata/`：动态分区布局等重建所需的非二进制元数据。
+- `release-tools/`：Stage78/80 刷机、日志工具和自解压程序的源码与测试脚本，不含镜像和可执行文件。
 
 ## 明确不包含
 
@@ -33,6 +35,7 @@ ColorOS framework/app 层维持 PMB110 兼容身份；vendor/odm/radio/security 
 
 - 最新公开源码归档日期：2026-11-17。
 - 当前模块源码基线：`v1.10.8-20261115-auto-brightness-final`。
-- 已知可启动交付和实际大镜像保留在本地归档，不进入 GitHub。
+- 无线电修复源码基线：`v2.1_FINAL_20261112`。
+- 已知可启动交付和实际大镜像不进入 GitHub；删除本地前请按 `LOCAL_DELETION_CHECKLIST.md` 另行离线保存或确认可重新下载。
 
 本仓库公开不等于授予厂商闭源组件的再分发许可；仓库未附开源许可证的文件保留其原有权利状态。

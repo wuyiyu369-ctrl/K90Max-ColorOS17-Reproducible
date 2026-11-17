@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $delivery = 'D:\K90Max_ColorOS17_完整迁移_20261028\01_主工程\K90_A17_PORT_WORK\delivery'
 $names = @(
     'K90Max_ColorOS17_Prague_KEEPDATA_Native_Stage41_FANPERF_LABELS',

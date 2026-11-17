@@ -1,0 +1,35 @@
+K90 Max ColorOS 17 Stage48 一键包构建与安全说明
+
+作者：哆啦A梦
+构建日期：2026-11-06
+
+系统镜像：Stage48_CPU_SCENE_STATEFIX
+super.img SHA-256：
+C87222305212FFD89A4A8E2E691708E010A622469BFCEDD013F95E096984B18A
+
+已验证事实：
+1. Stage48 已在 Redmi K90 Max / prague 上保数据刷入并正常开机。
+2. super.img 已通过完整 SHA-256 校验。
+3. 官方 vbmeta、vbmeta_system、vbmeta_vendor 的有效字节与已开机手机
+   对应分区前缀完全一致；手机分区其余部分是零填充。
+4. vendor_boot 来自当前已开机手机，SHA-256：
+   2339EEC770E0DB2D99ACF1F0CE252BAF0BD394376820423BCA8E418181EFE24F
+5. 无 Root init_boot 来自 Redmi K90 Max Android 17 官方底包。
+6. Root init_boot 是本机当前可用的 KernelSU 修补镜像。
+
+脚本验证：
+- PowerShell 主脚本 UTF-8 BOM + CRLF；CMD 启动器纯 ASCII + CRLF。
+- 不使用 PowerShell 3.0+ 的 Get-FileHash 或 ReadToEndAsync。
+- 已模拟 ADB、bootloader fastboot、fastbootd、无设备、多设备、刷写失败、
+  保数据、清数据、Root 和无 Root 分支。
+- 已在中文路径中测试 CMD 到 PowerShell 的完整启动链，没有乱码和 %~dp0 错误。
+- 自解压程序是原生 32 位 Win32 程序，不依赖电脑安装 .NET、WinRAR 或 7-Zip。
+
+敏感分区边界：
+脚本明确禁止刷写 modem、md1img、persist、nvdata、nvcfg、nvram、
+protect_f、protect_s、preloader、lk、md_sec、seccfg、proinfo、boot_para。
+
+验证边界：
+- Win7/Win10 是通过旧版 Win32 API、PowerShell 2.0 语法边界和 mock 分支验证，
+  不是在两台实体旧系统电脑上实刷手机。
+- 全新刷入/格式化有真实风险，重要数据必须提前备份。

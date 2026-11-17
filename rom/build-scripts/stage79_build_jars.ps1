@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $tools = 'D:\K90Max_ColorOS17_完整迁移_20261028\06_WSL关键产物_虚拟磁盘不迁移\工具JAR'
 $java = 'C:\Users\USERNAME\Documents\Codex\2026-10-08\wo\temurin17-jre\jdk-17.0.21+9-jre\bin\java.exe'

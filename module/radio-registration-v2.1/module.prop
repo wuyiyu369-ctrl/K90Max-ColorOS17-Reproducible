@@ -1,0 +1,6 @@
+id=k90max_radio_registration_fix
+name=K90 Max ColorOS 17 入网强恢复
+version=v2.1-20261112
+versionCode=201
+author=哆啦A梦 / Codex
+description=仅适用于 Redmi K90 Max (prague/MT6993) ColorOS 17 移植。兼容 Android 17 的 SIM LOADED/READY 状态；持续无服务时，每次开机最多执行一次 MTK RIL、SIM 与 ColorOS NAS 恢复链重置。不修改 modem、persist、nvdata、nvcfg 或 IMEI。

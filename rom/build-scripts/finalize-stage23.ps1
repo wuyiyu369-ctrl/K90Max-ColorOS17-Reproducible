@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $root = 'D:\K90Max_ColorOS17_完整迁移_20261028'
 $base = Join-Path $root '01_主工程\K90_A17_PORT_WORK\delivery\K90Max_ColorOS17_Prague_KEEPDATA_Native_Stage22_FP_PROGRESS'

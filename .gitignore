@@ -17,6 +17,11 @@ super_*
 *.oat
 *.so
 *.ko
+*.exe
+*.dll
+*.pdb
+*.msi
+*.sys
 *.zip
 *.7z
 *.rar

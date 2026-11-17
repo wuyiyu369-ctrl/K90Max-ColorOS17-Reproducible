@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 # Resolve everything relative to this project. The whole directory can be moved
 # without editing machine-specific absolute paths.

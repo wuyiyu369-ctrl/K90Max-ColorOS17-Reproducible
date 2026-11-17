@@ -1,0 +1,30 @@
+K90 Max ColorOS 17 Stage74 无 Root 发布信息
+
+构建日期：2026-11-10
+设备代号：prague
+系统镜像：Stage74 URCC FULL CLIENT
+super.img SHA-256：75C823CB697C8DAC34079E91374A20FCF62CAECCED2AAAE3AEFD9CF04DC0048A
+
+已在实机验证：
+- Stage74 正常开机，sys.boot_completed=1。
+- ColorOS UAH/URCC 请求可到达 Xiaomi UniPerf 和 MTK PowerHAL。
+- 性能请求有 3000ms 超时释放，空闲后 CPU 三个集群恢复默认约束。
+- IPerformance、IUrcc、IUniperf 服务在线，无新增 tombstone。
+- 当前实机没有 su 命令；本发布包额外固定刷入原厂无 Root init_boot。
+
+无 Root 边界：
+- 发布包不包含 KernelSU 修补 init_boot、KernelSU APK、KSU 模块或 LSPosed 模块。
+- 原厂 init_boot SHA-256：B230738ED4F459E01E6BF8FC00DC5D5A01B28908698EB2ED89CFE6EF99D8C40E
+- 用户数据中可能遗留旧管理器 APK，但原厂 init_boot 不提供 Root 能力。
+
+刷写边界：
+- 系统更新：super、原厂 init_boot。
+- 全新刷入：boot、vendor_boot、dtbo、vbmeta、vbmeta_system、vbmeta_vendor、
+  原厂 init_boot、super。
+- 永不刷写 modem、persist、nvdata、nvcfg、nvram、protect*、preloader、lk。
+
+验证边界：
+- Stage74 super 已实机验证；发布脚本将进行哈希、设备代号、Bootloader、
+  Fastboot/Fastbootd 状态和分支模拟检查。
+- Windows 7/10/11 兼容结论来自 PowerShell 语法边界与模拟测试，不代表每一种
+  实体电脑、USB 控制器和驱动组合均完成实际刷写。

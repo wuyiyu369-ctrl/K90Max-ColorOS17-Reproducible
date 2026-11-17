@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $root = 'C:\Users\USERNAME\Documents\Codex\2026-10-08\wo'
 $tools = 'D:\K90Max_ColorOS17_完整迁移_20261028\02_Codex完整工作区\wo\tools\smali3'

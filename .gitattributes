@@ -5,5 +5,8 @@
 *.cpp text eol=lf
 *.h text eol=lf
 *.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.rule text eol=lf
+*.cs text eol=crlf
 *.md text eol=lf
 *.txt text eol=lf

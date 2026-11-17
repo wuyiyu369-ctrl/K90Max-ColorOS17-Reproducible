@@ -1,0 +1,33 @@
+Redmi K90 Max / prague  ColorOS 17 Stage80
+作者：哆啦A梦
+
+一、入口结构（保持 Stage48 格式）
+
+START_FLASH.cmd
+- 与 Stage48 相同，在一个向导里选择系统更新或全新刷入。
+- 在同一个向导里选择保留数据或格式化数据、无 Root 或 SukiSU Root。
+- 无 Root 选择刷原厂 init_boot；Root 选择刷新 SukiSU 41150 修补 init_boot。
+- Root 刷入后会尝试安装包内 SukiSU 管理器；若系统阻止 ADB 安装，可手动安装 root 文件夹内 APK。
+- 格式化数据时明确执行 F2FS userdata 格式化和 metadata 清除。
+- 不再调用 fastboot -w，避免不存在的 cache 分区造成“恢复出厂失败”误报。
+
+3_一键抓日志.cmd
+- 支持实时日志、历史日志、bugreport 和设备状态收集。
+- 实时日志可按 Ctrl+C 停止，完成后会整理到本地日志目录。
+
+二、安全边界
+
+- 设备仅限 Redmi K90 Max，fastboot 产品代号必须是 prague。
+- 刷机前电量应高于 30%，使用可靠数据线，关键分区刷写时不要拔线。
+- 脚本禁止刷写 modem、persist、nvdata、nvcfg、protect*、preloader 等敏感分区。
+- 系统更新不会清除 userdata 或 metadata。
+- 清数据选项会永久删除用户数据，必须按脚本提示二次确认。
+
+三、当前 Root 文件
+
+- root\init_boot_sukisu_41150.img
+  SHA-256: FBB3CC79DB24C2D0C63C7932657D78F39E193A8B479967DB2F096D54277488F8
+- root\SukiSU_v4.3.0-r2_41150-release.apk
+  包名: com.sukisu.ultra
+  版本: v4.3.0-r2 (41150)
+  SHA-256: 6FE64E7BCF9FD768C58F46AFEA2F27EE9FB85D2783472A7E81334DF21E700636

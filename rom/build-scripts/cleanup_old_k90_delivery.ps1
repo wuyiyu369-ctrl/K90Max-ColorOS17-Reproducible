@@ -1,4 +1,4 @@
-$root = (Resolve-Path 'D:\K90Max_ColorOS17_完整迁移_20261028\01_主工程\K90_A17_PORT_WORK\delivery').Path
+﻿$root = (Resolve-Path 'D:\K90Max_ColorOS17_完整迁移_20261028\01_主工程\K90_A17_PORT_WORK\delivery').Path
 $names = @(
   'K90Max_ColorOS17_Prague_KEEPDATA_Native_Stage13_COMBINED',
   'K90Max_ColorOS17_Prague_KEEPDATA_Native_Stage24_SMS_NATIVE_R3',

@@ -1,4 +1,4 @@
-$out = 'C:\Users\USERNAME\Documents\Codex\2026-10-08\wo\policy_inputs_coloros17_matching'
+﻿$out = 'C:\Users\USERNAME\Documents\Codex\2026-10-08\wo\policy_inputs_coloros17_matching'
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 $files = @{

@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $Stock = 'D:\K90Max_ColorOS17_完整迁移_20261028\04_原始底包与参考包\BAO\RedmiK90Max_OS4.0.0.14_17.0\zhuimeng\vendor_boot.img'
 $Ramdisk = 'D:\vbtmp\ramdisk_modified.lz4'

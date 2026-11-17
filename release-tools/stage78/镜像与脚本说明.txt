@@ -1,0 +1,31 @@
+Redmi K90 Max / prague ColorOS 17 Stage78 脚本说明
+
+1_无Root一键刷机.cmd
+- 系统更新：刷入 Stage78 super.img 和原厂无 Root init_boot。
+- 从小米系统首刷：额外刷入已验证的 Prague Android 17 boot、vendor_boot、dtbo、vbmeta、vbmeta_system、vbmeta_vendor。
+- 清空数据使用 format:f2fs userdata，然后 erase metadata；不再使用旧脚本中失败的 fastboot -w。
+- 不提供 Root 选择，不包含旧 KernelSU 修补镜像。
+
+2_ROOT_拖入修补init_boot.cmd
+- 先用最新版 KernelSU 管理器修补桌面的原厂 init_boot。
+- 双击脚本，把修补完成的 .img 拖进窗口并按回车。
+- 只刷当前活动槽 init_boot_a 或 init_boot_b，不刷其他镜像，不清数据。
+- 会检查 boot magic、文件大小、设备代号 prague、Bootloader 解锁状态和当前槽。
+
+3_一键抓取完整日志.cmd
+- 选 1：实时抓取，复现问题后按 Ctrl+C，随后自动补抓历史日志和 bugreport。
+- 选 2：直接抓取当前、历史、临时、系统服务和硬件状态日志。
+- 完成后生成可直接发送的 .7z 日志包。
+
+镜像来源与边界
+- super.img：Stage78，SHA-256 532B47AAD96B3F03916C72C027D950C3B4EE93E5462A61ACF10BC775EE6C85E4。
+- init_boot_stock.img：Redmi K90 Max Android 17 原厂镜像，SHA-256 B230738ED4F459E01E6BF8FC00DC5D5A01B28908698EB2ED89CFE6EF99D8C40E。
+- vendor_boot.img：来自已正常开机的本机兼容启动链，SHA-256 2339EEC770E0DB2D99ACF1F0CE252BAF0BD394376820423BCA8E418181EFE24F。
+- boot、dtbo 和 vbmeta*：来自此前已成功用于 Prague/本机的完整启动链，脚本会逐个校验 SHA-256。
+- 不刷写 modem、md1img、persist、nvdata、nvcfg、nvram、protect*、preloader、lk、md_sec、seccfg、proinfo、boot_para。
+
+当前手机说明
+- Stage78 刷入时只刷了 super.img，没有改动当时的 init_boot。
+- 当前系统没有 su 命令，因此没有运行中的 Root 能力。
+- 生产版 ADB 无权读取 init_boot 块设备，所以不能对手机当前 init_boot 做逐字节哈希证明。
+- 运行脚本 1 后会明确刷入上述原厂 init_boot，可确定为无 Root启动镜像。

@@ -1,14 +1,14 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $files = Get-ChildItem -LiteralPath $root -File -Recurse -Force |
     Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
 
 $tooLarge = $files | Where-Object Length -GT 1MB
-$forbiddenExt = @('.img','.bin','.raw','.apk','.apex','.jar','.dex','.so','.ko','.zip','.7z','.rar','.vhd','.vhdx','.key','.pem','.pk8','.jks')
+$forbiddenExt = @('.img','.bin','.raw','.apk','.apex','.jar','.dex','.so','.ko','.exe','.dll','.pdb','.msi','.sys','.zip','.7z','.rar','.vhd','.vhdx','.key','.pem','.pk8','.jks')
 $binary = $files | Where-Object { $forbiddenExt -contains $_.Extension.ToLowerInvariant() }
 $secretPattern = 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|O77HJNW4JFCYOJVG|125088|adbkey'
 $secretHits = foreach ($file in $files) {
-    if ($file.FullName -ne $PSCommandPath -and ($file.Extension -in '.md','.txt','.sh','.ps1','.py','.c','.cpp','.h','.json','.xml','.prop' -or [string]::IsNullOrEmpty($file.Extension))) {
+    if ($file.FullName -ne $PSCommandPath -and ($file.Extension -in '.md','.txt','.sh','.ps1','.cmd','.py','.c','.cpp','.cs','.h','.json','.xml','.prop','.rule' -or [string]::IsNullOrEmpty($file.Extension))) {
         Select-String -LiteralPath $file.FullName -Pattern $secretPattern -AllMatches -ErrorAction SilentlyContinue
     }
 }
