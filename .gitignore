@@ -4,8 +4,11 @@
 *.raw
 *.sparse
 *.payload
-super_*
-*dump*
+super.img
+super_*.img
+*.dump
+dump/
+*dumpsys*
 
 # Packaged/binary Android artifacts
 *.apk

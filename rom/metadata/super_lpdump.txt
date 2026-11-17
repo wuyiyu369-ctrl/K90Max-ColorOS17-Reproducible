@@ -1,0 +1,158 @@
+Slot 0:
+Metadata version: 10.2
+Metadata size: 1832 bytes
+Metadata max size: 65536 bytes
+Metadata slot count: 3
+Header flags: virtual_ab_device
+Partition table:
+------------------------
+  Name: system_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 2072527 linear super_a 2048
+------------------------
+  Name: system_ext_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 2124295 linear super_a 2074624
+------------------------
+  Name: product_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 297511 linear super_a 4200448
+------------------------
+  Name: my_manifest_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 1151 linear super_a 4499456
+------------------------
+  Name: my_product_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 2223175 linear super_a 4501504
+------------------------
+  Name: my_stock_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 9256431 linear super_a 6725632
+------------------------
+  Name: my_region_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 14167 linear super_a 15982592
+------------------------
+  Name: my_bigball_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 655 linear super_a 15996928
+------------------------
+  Name: my_carrier_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 655 linear super_a 15998976
+------------------------
+  Name: my_engineering_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 655 linear super_a 16001024
+------------------------
+  Name: my_heytap_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 655 linear super_a 16003072
+------------------------
+  Name: vendor_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 4917551 linear super_a 16005120
+------------------------
+  Name: odm_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 3368223 linear super_a 20924416
+------------------------
+  Name: vendor_dlkm_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 52023 linear super_a 24293376
+------------------------
+  Name: system_dlkm_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 15879 linear super_a 24346624
+------------------------
+  Name: odm_dlkm_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 679 linear super_a 24363008
+------------------------
+  Name: mi_ext_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 208151 linear super_a 24365056
+------------------------
+  Name: mi_product_a_a
+  Group: mian_a_a
+  Attributes: none
+  Extents:
+    0 .. 679 linear super_a 24573952
+------------------------
+Super partition layout:
+------------------------
+super_a: 2048 .. 2074576: system_a_a (2072528 sectors)
+super_a: 2074624 .. 4198920: system_ext_a_a (2124296 sectors)
+super_a: 4200448 .. 4497960: product_a_a (297512 sectors)
+super_a: 4499456 .. 4500608: my_manifest_a_a (1152 sectors)
+super_a: 4501504 .. 6724680: my_product_a_a (2223176 sectors)
+super_a: 6725632 .. 15982064: my_stock_a_a (9256432 sectors)
+super_a: 15982592 .. 15996760: my_region_a_a (14168 sectors)
+super_a: 15996928 .. 15997584: my_bigball_a_a (656 sectors)
+super_a: 15998976 .. 15999632: my_carrier_a_a (656 sectors)
+super_a: 16001024 .. 16001680: my_engineering_a_a (656 sectors)
+super_a: 16003072 .. 16003728: my_heytap_a_a (656 sectors)
+super_a: 16005120 .. 20922672: vendor_a_a (4917552 sectors)
+super_a: 20924416 .. 24292640: odm_a_a (3368224 sectors)
+super_a: 24293376 .. 24345400: vendor_dlkm_a_a (52024 sectors)
+super_a: 24346624 .. 24362504: system_dlkm_a_a (15880 sectors)
+super_a: 24363008 .. 24363688: odm_dlkm_a_a (680 sectors)
+super_a: 24365056 .. 24573208: mi_ext_a_a (208152 sectors)
+super_a: 24573952 .. 24574632: mi_product_a_a (680 sectors)
+------------------------
+Block device table:
+------------------------
+  Partition name: super_a
+  First sector: 2048
+  Size: 13421772800 bytes
+  Flags: none
+------------------------
+Group table:
+------------------------
+  Name: default
+  Maximum size: 0 bytes
+  Flags: none
+------------------------
+  Name: mian_a_a
+  Maximum size: 13411287040 bytes
+  Flags: none
+------------------------
+  Name: mian_b_a
+  Maximum size: 13411287040 bytes
+  Flags: none
+------------------------
