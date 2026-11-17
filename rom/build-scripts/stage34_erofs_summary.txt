@@ -1,0 +1,48 @@
+=== /root/k90_stage33_merge/images/product31.img
+Filesystem magic number:                      0xE0F5E1E2
+Filesystem blocks:                            36766
+Filesystem inode metadata start block:        0
+Filesystem shared xattr metadata start block: 0
+Filesystem root nid:                          38
+Filesystem compr_algs:                        lz4
+Filesystem sb_extslots:                       0
+Filesystem inode count:                       151
+Filesystem created:                           Tue Oct  6 16:58:45 2026
+Filesystem features:                          sb_csum mtime xattr_filter 0padding compr_cfgs big_pcluster
+Filesystem UUID:                              29e54278-57e6-5163-a8c7-a9585e142b84
+=== /root/k90_stage33_native_build/out/product.img
+Filesystem magic number:                      0xE0F5E1E2
+Filesystem blocks:                            34130
+Filesystem inode metadata start block:        0
+Filesystem shared xattr metadata start block: 0
+Filesystem root nid:                          38
+Filesystem compr_algs:                        lz4
+Filesystem sb_extslots:                       0
+Filesystem inode count:                       160
+Filesystem created:                           Wed Oct  7 00:58:45 2026
+Filesystem features:                          sb_csum mtime xattr_filter 0padding compr_cfgs big_pcluster
+Filesystem UUID:                              29e54278-57e6-5163-a8c7-a9585e142b84
+=== /root/k90_stage33_merge/images/odm31.img
+Filesystem magic number:                      0xE0F5E1E2
+Filesystem blocks:                            386674
+Filesystem inode metadata start block:        0
+Filesystem shared xattr metadata start block: 0
+Filesystem root nid:                          44
+Filesystem compr_algs:                        lz4
+Filesystem sb_extslots:                       0
+Filesystem inode count:                       1303
+Filesystem created:                           Tue Oct  6 17:09:10 2026
+Filesystem features:                          sb_csum mtime xattr_filter 0padding compr_cfgs big_pcluster
+Filesystem UUID:                              576c9ac6-61bb-5f15-bf93-63b0e7accd12
+=== /root/k90_stage33_native_build/out/odm.img
+Filesystem magic number:                      0xE0F5E1E2
+Filesystem blocks:                            388947
+Filesystem inode metadata start block:        0
+Filesystem shared xattr metadata start block: 0
+Filesystem root nid:                          44
+Filesystem compr_algs:                        lz4
+Filesystem sb_extslots:                       0
+Filesystem inode count:                       1303
+Filesystem created:                           Wed Oct  7 01:09:10 2026
+Filesystem features:                          sb_csum mtime xattr_filter 0padding compr_cfgs big_pcluster
+Filesystem UUID:                              576c9ac6-61bb-5f15-bf93-63b0e7accd12

@@ -1,0 +1,6 @@
+id=k90max_game_system_fix
+name=K90 Max 统一修复桥 v1.10.8
+version=v1.10.8-20261115-auto-brightness-final
+versionCode=208
+author=哆啦A梦
+description=仅适用于 Redmi K90 Max(prague/MT6993)。纯脚本 KernelSU 模块：对 K90 Max 光感与 PMB110 曲线做一次性温和校准，之后保留系统自学习；日常使用平衡启动场景并降低后台轮询开销；游戏不设频率或功耗墙，48C 交还小米硬件保护；不直写 cgroup、不关闭 SELinux、不挂载系统分区。

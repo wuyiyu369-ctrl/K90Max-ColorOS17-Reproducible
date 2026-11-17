@@ -1,0 +1,71 @@
+# Firmware, images and partition dumps
+*.img
+*.bin
+*.raw
+*.sparse
+*.payload
+super_*
+*dump*
+
+# Packaged/binary Android artifacts
+*.apk
+*.apex
+*.jar
+*.dex
+*.odex
+*.vdex
+*.oat
+*.so
+*.ko
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.zst
+
+# Keys, credentials and device-private material
+*.key
+*.pem
+*.pk8
+*.x509.pem
+adbkey*
+*.keystore
+*.jks
+*credential*
+*secret*
+*token*
+
+# Logs, traces, crashes and device captures
+*.log
+*.trace
+*.perfetto-trace
+*logcat*
+*ramoops*
+*tombstone*
+bugreport*
+device_*
+
+# Generated/reverse-engineering outputs
+build/
+out/
+dist/
+releases/
+extracted/
+unpack*/
+*smali*/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+
+# Virtual disks/toolchains
+*.vhd
+*.vhdx
+*.vmdk
+android-ndk-*/
+temurin*/
+tools/bin/
+
+# Guardrail: GitHub rejects files over 100 MiB; this repo intentionally keeps
+# every tracked file below 1 MiB.

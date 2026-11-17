@@ -1,0 +1,23 @@
+# Keep the working low-latency path, but disable the missing ColorOS game
+# effect UUID which causes FastMixer overruns on this port.
+ro.oplus.audio.support.low_latency_game=true
+ro.oplus.audio.support.low_latency_game_effect=false
+ro.oplus.audio.support.low_latency_game_effect.show_ui=false
+persist.vendor.audio.fpsop.game.effect=false
+persist.vendor.audio.fpsop.game.effect.bose=false
+persist.vendor.audio.fpsop.game.effect.speaker=false
+persist.vendor.audio.fpsop.game.effect.switch=false
+persist.vendor.audio.fpsop.game.effect.ui.default=false
+
+# The current ColorOS display policy exposes 165/144 mode records but clamps
+# both normal settings and user-preferred mode requests to an active 120 Hz.
+ro.surface_flinger.game_default_frame_rate_override=120
+
+# Merge only the supplied identity module's three safe properties. Keep the
+# Prague vendor/ODM build fingerprint and all radio/security calibration intact.
+ro.product.brand=oneplus
+ro.product.manufacturer=oneplus
+# Match the supplied Ace 6 Ultimate identity module's real global model value.
+# Keep the human-readable market name below for ColorOS Settings/Bluetooth UI.
+ro.product.model=PMB110
+ro.product.marketname=OnePlus Ace 6 Ultimate

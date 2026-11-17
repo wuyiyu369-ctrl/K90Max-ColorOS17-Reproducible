@@ -1,0 +1,29 @@
+# package=thermal_message/sconfig scene
+# Only games and benchmarks belong here. Launcher and normal applications use
+# the two-second launch burst, then return to the balanced daily scene.
+com.miHoYo.Yuanshen=20
+com.miHoYo.Yuanshen.bilibili=20
+com.miHoYo.hkrpg=20
+com.miHoYo.hkrpg.bilibili=20
+com.miHoYo.Nap=20
+com.miHoYo.bh3=20
+com.tencent.tmgp.pubgmhd=20
+com.tencent.tmgp.pubgm=20
+com.tencent.tmgp.sgame=19
+com.tencent.tmgp.cod=19
+com.tencent.tmgp.osgame=20
+com.tencent.tmgp.dfm=20
+com.tencent.lolm=19
+com.netease.yanyun=20
+com.netease.nie=20
+com.netease.party=19
+com.netease.mrzh=19
+com.netease.dwrg=19
+com.netease.hyxd=19
+com.netease.mc=19
+com.netease.onmyoji=18
+com.netease.sky=18
+com.netease.race=19
+com.antutu.*=20
+com.ludashi.*=20
+com.tencent.tmgp.*=19

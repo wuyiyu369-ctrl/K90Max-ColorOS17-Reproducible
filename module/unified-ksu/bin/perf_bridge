@@ -1,0 +1,639 @@
+#!/system/bin/sh
+MODDIR=${0%/*}/..
+STATE=/data/vendor/k90max/module_state
+CONF="$MODDIR/config/game_profiles"
+SAFE="$MODDIR/config/thermal_safe"
+SC=/sys/class/thermal/thermal_message/sconfig
+TM=/sys/class/thermal/thermal_message/board_sensor_temp
+LOG="$STATE/perf.log"
+mkdir -p "$STATE"
+
+POLL_SEC_GAME=2
+POLL_SEC_DAILY=3
+POLL_SEC_SLEEP=8
+SAFE_TEMP_HARD=48000
+SAFE_TEMP_COOL=44000
+DEFAULT_SCENE=-1
+EXIT_SCENE=-1
+LAUNCH_SCENE=18
+LAUNCH_BOOST_SEC=2
+BALANCED_SCENE=18
+TOUCH_MODE=1011
+TOUCH_GAME_RATE=240
+TOUCH_DAILY_RATE=120
+TASKPROFILE=/system/bin/settaskprofile
+# ColorOS SchedAssist cannot reach this Xiaomi kernel because the expected
+# /proc/oplus_scheduler nodes do not exist. Direct cgroup writes are denied to
+# the KernelSU domain on this build, even when a dynamic sepolicy file appears
+# to load. Use Android's built-in task-profile broker instead. It performs the
+# cgroup transition in the correct native domain, without disabling SELinux.
+DAILY_NICE=-2
+# Games are never frequency-capped by this module.  These values only control
+# Linux scheduling preference for the foreground game's main thread.  The
+# policy starts balanced, raises priority immediately under sustained load and
+# backs off only after several genuinely light samples, avoiding permanent
+# full-priority heat while preserving peak performance.
+GAME_NICE_ECO=-3
+GAME_NICE_BALANCED=-5
+GAME_NICE_MAX=-7
+GAME_LOAD_BALANCED=15
+GAME_LOAD_MAX=80
+GAME_LOW_SAMPLES=3
+[ -f "$SAFE" ] && . "$SAFE"
+
+# Stage40+ ROMs already ship a system-domain performance bridge with the full
+# profile table and the correct 0 -> -1 vendor-policy release. This helper must
+# still run for refresh-rate and touch integration, but delegates every sconfig
+# write to the ROM bridge so the two processes never fight over CPU policy.
+NATIVE_PERF=0
+if [ -f /odm/bin/k90_perf_bridge.sh ] && \
+   [ "$(getprop init.svc.k90-performance-bridge)" = "running" ]; then
+  NATIVE_PERF=1
+  [ -f /odm/etc/performance/game_profiles ] && \
+    CONF=/odm/etc/performance/game_profiles
+fi
+
+log(){ echo "$(date '+%m-%d %H:%M:%S') $*" >> "$LOG" 2>/dev/null; }
+
+temp_mc(){ cat "$TM" 2>/dev/null | tr -dc '0-9-'; }
+screen_on(){ dumpsys power 2>/dev/null | grep -q 'mWakefulness=Awake'; }
+read_thermal_node(){ cat "$1" 2>/dev/null | tr -d '\r\n'; }
+
+set_profile(){
+  profile="$1"
+  [ "$current_profile" = "$profile" ] && return 0
+  current_profile="$profile"
+  echo "$profile" > "$STATE/policy_profile"
+  log "policy profile=$profile"
+}
+
+read_nice(){
+  stat="$(cat "/proc/$1/stat" 2>/dev/null)" || return 1
+  rest="${stat#*) }"
+  printf '%s\n' "$rest" | awk '{print $17}'
+}
+
+read_proc_ticks(){
+  stat="$(cat "/proc/$1/stat" 2>/dev/null)" || return 1
+  rest="${stat#*) }"
+  printf '%s\n' "$rest" | awk '{print $12 + $13}'
+}
+
+package_pids(){
+  target_pkg="$1"
+  for candidate in $(pidof "$target_pkg" 2>/dev/null); do
+    cmd="$(tr -d '\000' < "/proc/$candidate/cmdline" 2>/dev/null)"
+    case "$cmd" in
+      "$target_pkg"|"$target_pkg":*) printf '%s\n' "$candidate" ;;
+    esac
+  done
+}
+
+read_package_ticks(){
+  target_pkg="$1"
+  total=0
+  found=0
+  for candidate in $(package_pids "$target_pkg"); do
+    value="$(read_proc_ticks "$candidate")" || continue
+    case "$value" in ''|*[!0-9]*) continue ;; esac
+    total=$((total + value))
+    found=1
+  done
+  [ "$found" = 1 ] || return 1
+  printf '%s\n' "$total"
+}
+
+select_game_policy(){
+  game_pid="$1"
+  game_temp="$2"
+  game_pkg="$3"
+  now_sample="$(date +%s 2>/dev/null)"
+  # Games and benchmarks frequently put rendering, Vulkan or the actual test
+  # workload in package:suffix child processes. Sampling only the main process
+  # made a busy game look idle and incorrectly selected the eco tier.
+  ticks_sample="$(read_package_ticks "$game_pkg")"
+  case "$now_sample:$ticks_sample" in
+    *[!0-9:]*|'':*|*:) game_load=-1 ;;
+    *)
+      if [ "$game_sample_pid" = "$game_pid" ] &&
+         [ -n "$game_sample_at" ] && [ "$now_sample" -gt "$game_sample_at" ] &&
+         [ "$ticks_sample" -ge "$game_sample_ticks" ] 2>/dev/null; then
+        # Android kernels use USER_HZ=100.  delta ticks / delta seconds is
+        # therefore the percentage of one fully occupied CPU core; a
+        # multi-threaded game may legitimately exceed 100.
+        game_load=$(( (ticks_sample - game_sample_ticks) / (now_sample - game_sample_at) ))
+      else
+        game_load=-1
+      fi
+      game_sample_pid="$game_pid"
+      game_sample_at="$now_sample"
+      game_sample_ticks="$ticks_sample"
+      ;;
+  esac
+
+  game_target_nice="$GAME_NICE_BALANCED"
+  game_tier=balanced
+  if [ "$game_temp" -ge "$SAFE_TEMP_HARD" ] 2>/dev/null; then
+    # Never bypass the vendor's hardware protection. At the hard threshold,
+    # remove this module's extra preference and let Xiaomi thermal policy own
+    # the decision. Below this point the module sets no frequency/power cap.
+    game_target_nice=0
+    game_tier=vendor-thermal
+    game_low_streak=0
+  elif [ "$game_load" -ge "$GAME_LOAD_MAX" ] 2>/dev/null; then
+    game_target_nice="$GAME_NICE_MAX"
+    game_tier=max
+    game_low_streak=0
+  elif [ "$game_load" -ge "$GAME_LOAD_BALANCED" ] 2>/dev/null || [ "$game_load" -lt 0 ]; then
+    game_target_nice="$GAME_NICE_BALANCED"
+    game_tier=balanced
+    game_low_streak=0
+  else
+    game_low_streak=$((game_low_streak + 1))
+    if [ "$game_low_streak" -ge "$GAME_LOW_SAMPLES" ]; then
+      game_target_nice="$GAME_NICE_ECO"
+      game_tier=eco
+    else
+      game_target_nice="$GAME_NICE_BALANCED"
+      game_tier=balanced-hold
+    fi
+  fi
+
+  if [ "$game_tier:$game_target_nice" != "$last_game_tier:$last_game_nice" ]; then
+    log "GAME-POLICY pkg=$game_pkg pid=$game_pid tier=$game_tier load=${game_load}% nice=$game_target_nice temp=$game_temp"
+    last_game_tier="$game_tier"
+    last_game_nice="$game_target_nice"
+  fi
+}
+
+set_nice_absolute(){
+  target_pid="$1"
+  target_value="$2"
+  preserve_stronger="$3"
+  current_value="$(read_nice "$target_pid")" || return 1
+  case "$current_value:$target_value" in
+    -[0-9]*:-[0-9]*|-[0-9]*:[0-9]*|[0-9]*:-[0-9]*|[0-9]*:[0-9]*) ;;
+    *) return 1 ;;
+  esac
+  # ColorOS/UAH may temporarily launch an app at -20. Raising it to the
+  # steady-state target is both unnecessary and rejected on this kernel.
+  # Preserve the stronger native boost and retry on a later poll after UAH
+  # releases it.
+  if [ "$preserve_stronger" = 1 ] &&
+     [ "$current_value" -lt "$target_value" ] 2>/dev/null; then
+    return 2
+  fi
+  # Android toybox renice interprets -n as a relative adjustment, unlike the
+  # absolute value expected by this policy. Convert target-current explicitly
+  # and verify the kernel value, otherwise repeated screen-state transitions
+  # would accumulate -4 until the task reached -20.
+  delta=$((target_value - current_value))
+  [ "$delta" -eq 0 ] || renice -n "$delta" -p "$target_pid" >/dev/null 2>&1 || return 1
+  [ "$(read_nice "$target_pid")" = "$target_value" ]
+}
+
+main_pid_for_pkg(){
+  target_pkg="$1"
+  for candidate in $(pidof "$target_pkg" 2>/dev/null); do
+    cmd="$(tr -d '\000' < "/proc/$candidate/cmdline" 2>/dev/null)"
+    [ "$cmd" = "$target_pkg" ] && {
+      echo "$candidate"
+      return 0
+    }
+  done
+  return 1
+}
+
+restore_app_sched(){
+  [ -n "$sched_pid" ] || return 0
+  old_profiled_tids="$profiled_tids"
+  if [ -d "/proc/$sched_pid" ]; then
+    cmd="$(tr -d '\000' < "/proc/$sched_pid/cmdline" 2>/dev/null)"
+    if [ "$cmd" = "$sched_pkg" ]; then
+      case "$sched_orig_nice" in
+        -[0-9]*|[0-9]*) set_nice_absolute "$sched_pid" "$sched_orig_nice" ;;
+      esac
+      pending_bg_pid="$sched_pid"
+      pending_bg_pkg="$sched_pkg"
+      pending_bg_tids="$old_profiled_tids"
+      pending_bg_at=$(($(date +%s 2>/dev/null) + 2))
+    fi
+  fi
+  log "TASKPROFILE-RESTORE pkg=$sched_pkg pid=$sched_pid nice=$(read_nice "$sched_pid")"
+  sched_pid=""
+  sched_pkg=""
+  sched_orig_nice=""
+  sched_target_nice=""
+  profiled_tids=""
+}
+
+cleanup_pending_background(){
+  [ -n "$pending_bg_pid" ] || return 0
+  now_bg="$(date +%s 2>/dev/null)"
+  case "$now_bg:$pending_bg_at" in
+    *[!0-9:]*|'':*) return 0 ;;
+  esac
+  [ "$now_bg" -ge "$pending_bg_at" ] || return 0
+
+  if [ -d "/proc/$pending_bg_pid" ]; then
+    cmd="$(tr -d '\000' < "/proc/$pending_bg_pid/cmdline" 2>/dev/null)"
+    oom="$(cat "/proc/$pending_bg_pid/oom_score_adj" 2>/dev/null)"
+    case "$oom" in ''|*[!0-9-]*) oom=-1000 ;; esac
+    if [ "$cmd" = "$pending_bg_pkg" ] && [ "$pending_bg_pkg" != "$1" ] &&
+       [ "$oom" -ge 200 ]; then
+      for tid in $pending_bg_tids; do
+        [ -d "/proc/$pending_bg_pid/task/$tid" ] || continue
+        "$TASKPROFILE" "$tid" \
+          SCHED_SP_BACKGROUND CPUSET_SP_BACKGROUND TimerSlackHigh \
+          >/dev/null 2>&1
+      done
+      log "TASKPROFILE-BACKGROUND pkg=$pending_bg_pkg pid=$pending_bg_pid oom=$oom tids=$(echo "$pending_bg_tids" | wc -w)"
+    else
+      log "TASKPROFILE-BACKGROUND-SKIP pkg=$pending_bg_pkg pid=$pending_bg_pid oom=$oom current=$1"
+    fi
+  fi
+  pending_bg_pid=""
+  pending_bg_pkg=""
+  pending_bg_tids=""
+  pending_bg_at=0
+}
+
+profile_tid(){
+  tid="$1"
+  case " $profiled_tids " in *" $tid "*) return 0 ;; esac
+  "$TASKPROFILE" "$tid" \
+    SCHED_SP_TOP_APP CPUSET_SP_TOP_APP CpuPolicySpread TimerSlackNormal \
+    >/dev/null 2>&1 || {
+      log "ERROR taskprofile tid=$tid"
+      return 1
+    }
+  profiled_tids="$profiled_tids $tid"
+}
+
+set_app_sched(){
+  pkg_name="$1"
+  target_nice="$2"
+  reason="$3"
+  pid="$(main_pid_for_pkg "$pkg_name")" || {
+    [ "$sched_pkg" != "$pkg_name" ] && restore_app_sched
+    return 1
+  }
+
+  if [ "$sched_pid" != "$pid" ] || [ "$sched_pkg" != "$pkg_name" ]; then
+    restore_app_sched
+    sched_pid="$pid"
+    sched_pkg="$pkg_name"
+    sched_orig_nice="$(read_nice "$pid")"
+    # ColorOS launch boost may transiently expose -16/-20 while an app is
+    # starting. That value is not its steady-state baseline and must not be
+    # restored after the app leaves the foreground. Preserve ordinary custom
+    # priorities, but normalize a launch-only extreme boost to Android's
+    # normal application baseline.
+    case "$sched_orig_nice" in
+      -20|-19|-18|-17|-16|-15|-14|-13|-12|-11|-10|-9)
+        log "TASKPROFILE transient-original pkg=$pkg_name pid=$pid observed=$sched_orig_nice baseline=0"
+        sched_orig_nice=0
+        ;;
+    esac
+    sched_target_nice=""
+    profiled_tids=""
+    last_thread_scan_at=0
+  fi
+
+  profile_tid "$pid"
+  if [ "$sched_target_nice" != "$target_nice" ]; then
+    set_nice_absolute "$pid" "$target_nice" 1
+    nice_result=$?
+    if [ "$nice_result" -eq 0 ]; then
+      sched_target_nice="$target_nice"
+      log "TASKPROFILE pkg=$pkg_name pid=$pid reason=$reason nice=$(read_nice "$pid") original=$sched_orig_nice"
+    elif [ "$nice_result" -eq 2 ]; then
+      # The native ColorOS boost is already stronger than this module's
+      # target. Mark this target satisfied so the loop does not wake the
+      # process and write a log line on every poll.
+      sched_target_nice="$target_nice"
+      log "TASKPROFILE native-boost pkg=$pkg_name pid=$pid current=$(read_nice "$pid") target=$target_nice reason=$reason"
+    else
+      log "ERROR renice pkg=$pkg_name pid=$pid target=$target_nice reason=$reason"
+    fi
+  fi
+
+  scan_now="$(date +%s 2>/dev/null)"
+  case "$scan_now" in ''|*[!0-9]*) scan_now=0 ;; esac
+  scan_interval=15
+  case "$reason" in game:*) scan_interval=4 ;; esac
+  if [ "$last_thread_scan_at" -eq 0 ] 2>/dev/null ||
+     [ $((scan_now - last_thread_scan_at)) -ge "$scan_interval" ] 2>/dev/null; then
+    scan_pids="$pid"
+    case "$reason" in game:*) scan_pids="$(package_pids "$pkg_name")" ;; esac
+    for scan_pid in $scan_pids; do
+      for task in "/proc/$scan_pid"/task/*; do
+        [ -d "$task" ] || continue
+        tid=${task##*/}
+        comm="$(cat "$task/comm" 2>/dev/null)"
+        case "$comm" in
+          RenderThread|HwuiTask*|UnityMain|UnityGfxDeviceW|GameThread|RHIThread|VulkanThread)
+            profile_tid "$tid"
+            ;;
+        esac
+      done
+    done
+    last_thread_scan_at="$scan_now"
+  fi
+}
+
+set_touch_rate(){
+  rate="$1"
+  [ "$touch_rate" = "$rate" ] && return 0
+  result="$(service call vendor.xiaomi.hw.touchfeature.ITouchFeature/default \
+    9 i32 0 i32 "$TOUCH_MODE" i32 "$rate" 2>&1)"
+  status=$?
+  if [ "$status" -eq 0 ]; then
+    touch_rate="$rate"
+    echo "$rate" > "$STATE/touch_rate"
+    log "touch mode=$TOUCH_MODE rate=$rate result=accepted"
+  else
+    log "touch mode=$TOUCH_MODE rate=$rate result=failed status=$status reply=$result"
+  fi
+}
+
+set_refresh_profile(){
+  profile="$1"
+  [ "$refresh_profile" = "$profile" ] && return 0
+  case "$profile" in
+    game)
+      peak=120.00001
+      min=120.00001
+      ;;
+    daily)
+      # Keep scrolling fluid while allowing SurfaceFlinger to fall back to
+      # 60 Hz for static content. Never lock normal applications at 120 Hz.
+      peak=120.00001
+      min=60.0
+      ;;
+    sleep)
+      peak="$(cat "$STATE/orig_peak" 2>/dev/null)"
+      min="$(cat "$STATE/orig_min" 2>/dev/null)"
+      valid_refresh_value "$peak" || peak=60.0
+      valid_refresh_value "$min" || min=0.0
+      ;;
+    *) return 1 ;;
+  esac
+  settings put system peak_refresh_rate "$peak" >/dev/null 2>&1 || return 1
+  settings put system min_refresh_rate "$min" >/dev/null 2>&1 || return 1
+  refresh_profile="$profile"
+  echo "$profile" > "$STATE/refresh_profile"
+  log "refresh profile=$profile peak=$peak min=$min"
+}
+
+valid_refresh_value(){
+  case "$1" in
+    ''|null|*Failure*|*Error*|*Exception*|*[!0-9.-]*) return 1 ;;
+  esac
+  return 0
+}
+
+foreground_pkg(){
+  pkg="$(read_thermal_node /sys/class/thermal/thermal_message/foreground_app_name)"
+  if [ -z "$pkg" ]; then
+    pkg="$(dumpsys window 2>/dev/null | grep -m1 'mCurrentFocus=' | \
+      sed -n 's/.* u[0-9][0-9]* \([A-Za-z0-9_.]*\)\/.*/\1/p')"
+  fi
+  echo "$pkg"
+}
+
+screen_is_on(){
+  state="$(read_thermal_node /sys/class/thermal/thermal_message/screen_state)"
+  case "$state" in
+    1) return 0 ;;
+    0) return 1 ;;
+  esac
+  screen_on
+}
+
+map_scene(){
+  pkg="$1"; best=""; bestlen=0
+  while IFS= read -r line; do
+    # The shipped table is machine-generated as package=scene with no spaces.
+    # Parse it in the shell instead of spawning sed for every line on every
+    # poll; the old loop itself was a measurable background CPU consumer.
+    case "$line" in ''|\#*) continue ;; esac
+    line=${line%%#*}
+    case "$line" in *=*) ;; *) continue ;; esac
+    pat=${line%%=*}; val=${line#*=}
+    case "$pat" in
+      *\*) pre=${pat%\*}; case "$pkg" in "$pre"*)
+        [ ${#pre} -gt "$bestlen" ] && { best="$val"; bestlen=${#pre}; }
+      esac ;;
+      *) [ "$pkg" = "$pat" ] && { echo "$val"; return 0; } ;;
+    esac
+  done < "$CONF"
+  [ -n "$best" ] && { echo "$best"; return 0; }
+  return 1
+}
+
+restore_scene(){
+  set_touch_rate "$TOUCH_DAILY_RATE"
+  game_speed="$(cat "$STATE/orig_game_speed" 2>/dev/null)"
+  [ -n "$game_speed" ] && [ "$game_speed" != null ] && \
+    settings put global game_speed_up_switch "$game_speed" >/dev/null 2>&1
+  game_settings_applied=0
+  if [ "$NATIVE_PERF" != 1 ]; then
+    [ -w "$SC" ] || { owned_scene=""; return; }
+    printf '%s' "$EXIT_SCENE" > "$SC" 2>/dev/null
+  fi
+  owned_scene=""
+}
+
+LOCK="$STATE/perf_bridge.lock"
+if ! mkdir "$LOCK" 2>/dev/null; then
+  lock_pid="$(cat "$LOCK/pid" 2>/dev/null)"
+  case "$lock_pid" in
+    ''|*[!0-9]*) lock_pid="" ;;
+  esac
+  if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null &&
+     grep -q 'perf_bridge' "/proc/$lock_pid/cmdline" 2>/dev/null; then
+    log "duplicate bridge refused active_pid=$lock_pid"
+    exit 0
+  fi
+  rm -f "$LOCK/pid" 2>/dev/null
+  rmdir "$LOCK" 2>/dev/null
+  mkdir "$LOCK" 2>/dev/null || {
+    log "bridge lock acquisition failed"
+    exit 1
+  }
+fi
+printf '%s\n' "$$" > "$LOCK/pid"
+cleanup_bridge(){
+  restore_scene
+  restore_app_sched
+  rm -f "$LOCK/pid" 2>/dev/null
+  rmdir "$LOCK" 2>/dev/null
+}
+
+write_scene(){
+  scene="$1"
+  reason="$2"
+  current="$(cat "$SC" 2>/dev/null)"
+  if [ "$NATIVE_PERF" = 1 ]; then
+    [ "$owned_scene" = "$scene" ] && return 0
+    owned_scene="$scene"
+    log "SCENE-DELEGATED=$scene reason=$reason native_pid=$(getprop init.svc_debug_pid.k90-performance-bridge) actual=${current:-missing}"
+    return 0
+  fi
+  [ -w "$SC" ] || { log "ERROR sconfig-not-writable reason=$reason"; return 1; }
+  if [ "$current" = "$scene" ] && [ "$owned_scene" = "$scene" ]; then
+    return 0
+  fi
+  if ! printf '%s' "$scene" > "$SC" 2>/dev/null; then
+    log "ERROR sconfig-write scene=$scene reason=$reason"
+    return 1
+  fi
+  sleep 0.15
+  current="$(cat "$SC" 2>/dev/null)"
+  if [ "$current" != "$scene" ]; then
+    log "ERROR sconfig-readback requested=$scene actual=${current:-missing} reason=$reason"
+    return 1
+  fi
+  owned_scene="$scene"
+  log "SCENE=$scene reason=$reason caps=$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null)/$(cat /sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq 2>/dev/null)/$(cat /sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq 2>/dev/null) gpu=$(cat /sys/kernel/ged/hal/current_freqency 2>/dev/null) temp=$(temp_mc)"
+  return 0
+}
+
+cooldown=0
+last_scene=""
+last_game=""
+last_pkg=""
+boost_until=0
+touch_rate=""
+refresh_profile=""
+current_profile=""
+owned_scene=""
+game_settings_applied=0
+sched_pid=""
+sched_pkg=""
+sched_orig_nice=""
+sched_target_nice=""
+profiled_tids=""
+last_thread_scan_at=0
+pending_bg_pid=""
+pending_bg_pkg=""
+pending_bg_tids=""
+pending_bg_at=0
+game_sample_pid=""
+game_sample_at=""
+game_sample_ticks=""
+game_load=-1
+game_low_streak=0
+game_target_nice="$GAME_NICE_BALANCED"
+game_tier=balanced
+last_game_tier=""
+last_game_nice=""
+scene_cache_pkg=""
+scene_cache_value=""
+scene_cache_mapped=0
+set_touch_rate "$TOUCH_DAILY_RATE"
+set_profile daily
+set_refresh_profile sleep
+log "backend=$([ "$NATIVE_PERF" = 1 ] && echo rom-native || echo module-legacy) profiles=$CONF"
+trap 'cleanup_bridge; exit 0' INT TERM HUP EXIT
+while :; do
+  loop_sleep="$POLL_SEC_DAILY"
+  temp="$(temp_mc)"; case "$temp" in ''|*[!0-9-]*) temp=99999 ;; esac
+  if [ "$cooldown" = 1 ]; then
+    [ "$temp" -le "$SAFE_TEMP_COOL" ] && cooldown=0
+  else
+    [ "$temp" -ge "$SAFE_TEMP_HARD" ] && cooldown=1
+  fi
+
+  pkg="$(foreground_pkg)"
+  if screen_is_on; then
+    awake=1
+    cleanup_pending_background "$pkg"
+  else
+    awake=0
+    cleanup_pending_background ""
+  fi
+  scene=""
+  if [ "$pkg" = "$scene_cache_pkg" ]; then
+    [ "$scene_cache_mapped" = 1 ] && scene="$scene_cache_value"
+  else
+    scene_cache_pkg="$pkg"
+    scene_cache_value=""
+    scene_cache_mapped=0
+    if [ -n "$pkg" ]; then
+      scene_cache_value="$(map_scene "$pkg" 2>/dev/null)"
+      if [ -n "$scene_cache_value" ]; then
+        scene_cache_mapped=1
+        scene="$scene_cache_value"
+      fi
+    fi
+  fi
+  now="$(date +%s 2>/dev/null)"
+  case "$now" in ''|*[!0-9]*) now=0 ;; esac
+
+  if [ "$awake" = 1 ] && [ -n "$scene" ]; then
+    loop_sleep="$POLL_SEC_GAME"
+    write_scene "$scene" "game:$pkg"
+    game_pid="$(main_pid_for_pkg "$pkg" 2>/dev/null)"
+    if [ -n "$game_pid" ]; then
+      select_game_policy "$game_pid" "$temp" "$pkg"
+      set_app_sched "$pkg" "$game_target_nice" "game:$pkg:$game_tier:${game_load}%"
+    fi
+    if [ "$game_settings_applied" != 1 ]; then
+      set_refresh_profile game
+      settings put global game_speed_up_switch 1 >/dev/null 2>&1
+      game_settings_applied=1
+      log "game settings applied refresh=120 speed_up=1"
+    fi
+    set_touch_rate "$TOUCH_GAME_RATE"
+    set_profile game
+    if [ "$scene:$pkg" != "$last_scene:$last_game" ]; then
+      log "game pkg=$pkg scene=$scene temp=$temp refresh=120 touch=$TOUCH_GAME_RATE tier=$game_tier load=${game_load}%"
+    fi
+    last_scene="$scene"; last_game="$pkg"; last_pkg="$pkg"
+  elif [ "$cooldown" = 0 ] && [ "$awake" = 1 ] && [ -n "$pkg" ]; then
+    game_sample_pid=""
+    game_sample_at=""
+    game_sample_ticks=""
+    game_low_streak=0
+    last_game_tier=""
+    last_game_nice=""
+    set_refresh_profile daily
+    if [ "$pkg" != "$last_pkg" ]; then
+      boost_until=$((now + LAUNCH_BOOST_SEC))
+      write_scene "$LAUNCH_SCENE" "launch-burst:$pkg:${LAUNCH_BOOST_SEC}s"
+      set_app_sched "$pkg" "$DAILY_NICE" "launch:$pkg"
+      log "APP-SWITCH pkg=$pkg burst_until=$boost_until"
+    elif [ "$now" -lt "$boost_until" ]; then
+      write_scene "$LAUNCH_SCENE" "launch-burst-remain:$pkg:$((boost_until - now))s"
+      set_app_sched "$pkg" "$DAILY_NICE" "launch:$pkg"
+    else
+      write_scene "$BALANCED_SCENE" "daily:$pkg"
+      set_app_sched "$pkg" "$DAILY_NICE" "daily:$pkg"
+    fi
+    set_touch_rate "$TOUCH_DAILY_RATE"
+    set_profile daily
+    last_pkg="$pkg"; last_scene="$owned_scene"; last_game=""
+  else
+    loop_sleep="$POLL_SEC_SLEEP"
+    set_refresh_profile sleep
+    set_touch_rate "$TOUCH_DAILY_RATE"
+    restore_app_sched
+    if [ "$cooldown" = 1 ]; then
+      set_profile thermal
+    else
+      set_profile daily
+    fi
+    if [ -n "$last_scene" ]; then
+      restore_scene
+      log "game exit pkg=$last_game temp=$temp cooldown=$cooldown"
+      last_scene=""; last_game=""
+    fi
+  fi
+  if [ -z "$pkg" ] && [ -n "$owned_scene" ]; then
+    restore_scene
+  fi
+  [ -s "$LOG" ] && [ "$(wc -l < "$LOG")" -gt 200 ] && tail -120 "$LOG" > "$LOG.new" && mv "$LOG.new" "$LOG"
+  sleep "$loop_sleep"
+done

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fan_configs version="20261110" check_period_ms="1000">
+    <strategy name="PocketMode" smart_shifting="false"><speed_level>0</speed_level></strategy>
+    <strategy name="TelephonyInHeld" smart_shifting="false"><speed_level>0</speed_level></strategy>
+    <strategy name="SuperPowerSaving" smart_shifting="false"><speed_level>0</speed_level></strategy>
+    <strategy name="KeyguardLocked" smart_shifting="false"><speed_level>0</speed_level></strategy>
+    <strategy name="HighPerformance" smart_shifting="false"><speed_level>20</speed_level></strategy>
+    <strategy name="SuperCharging" smart_shifting="true">
+        <speed_level thermal_level="-1">6</speed_level>
+        <speed_level thermal_level="0">6</speed_level>
+        <speed_level thermal_level="1">6</speed_level>
+        <speed_level thermal_level="2">6</speed_level>
+        <speed_level thermal_level="3">6</speed_level>
+        <speed_level thermal_level="4">10</speed_level>
+        <speed_level thermal_level="5">14</speed_level>
+        <speed_level thermal_level="6">18</speed_level>
+        <speed_level thermal_level="7">18</speed_level>
+        <speed_level thermal_level="8">18</speed_level>
+        <speed_level thermal_level="9">18</speed_level>
+        <speed_level thermal_level="10">18</speed_level>
+        <speed_level thermal_level="11">18</speed_level>
+        <speed_level thermal_level="12">18</speed_level>
+        <speed_level thermal_level="13">18</speed_level>
+        <speed_level thermal_level="14">18</speed_level>
+        <speed_level thermal_level="15">18</speed_level>
+        <speed_level thermal_level="16">18</speed_level>
+        <speed_level thermal_level="17">18</speed_level>
+        <speed_level thermal_level="18">18</speed_level>
+        <speed_level thermal_level="19">18</speed_level>
+    </strategy>
+    <strategy name="ChargeWhileKeyguardLocked" smart_shifting="false"><speed_level>12</speed_level></strategy>
+    <strategy name="NoiseReduction" smart_shifting="false"><speed_level>0</speed_level></strategy>
+    <strategy name="ShutDown" smart_shifting="false"><speed_level>0</speed_level></strategy>
+    <strategy name="SilenceMode" smart_shifting="false"><speed_level>6</speed_level></strategy>
+    <strategy name="BalanceMode" smart_shifting="false"><speed_level>17</speed_level></strategy>
+    <strategy name="FullSpeed" smart_shifting="false"><speed_level>20</speed_level></strategy>
+    <strategy name="Common" smart_shifting="true">
+        <speed_level thermal_level="-1">6</speed_level>
+        <speed_level thermal_level="0">6</speed_level>
+        <speed_level thermal_level="1">6</speed_level>
+        <speed_level thermal_level="2">6</speed_level>
+        <speed_level thermal_level="3">6</speed_level>
+        <speed_level thermal_level="4">8</speed_level>
+        <speed_level thermal_level="5">10</speed_level>
+        <speed_level thermal_level="6">14</speed_level>
+        <speed_level thermal_level="7">17</speed_level>
+        <speed_level thermal_level="8">20</speed_level>
+        <speed_level thermal_level="9">20</speed_level>
+        <speed_level thermal_level="10">20</speed_level>
+        <speed_level thermal_level="11">20</speed_level>
+        <speed_level thermal_level="12">20</speed_level>
+        <speed_level thermal_level="13">20</speed_level>
+        <speed_level thermal_level="14">20</speed_level>
+        <speed_level thermal_level="15">20</speed_level>
+        <speed_level thermal_level="16">20</speed_level>
+        <speed_level thermal_level="17">20</speed_level>
+        <speed_level thermal_level="18">20</speed_level>
+        <speed_level thermal_level="19">20</speed_level>
+    </strategy>
+</fan_configs>

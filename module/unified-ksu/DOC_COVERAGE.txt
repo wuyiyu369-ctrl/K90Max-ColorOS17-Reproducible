@@ -1,0 +1,61 @@
+K90 Max ColorOS 17 统一修复桥：文档覆盖矩阵
+日期：2026-11-14
+
+本文件来自主交接、无 Root 硬件迁移矩阵、小米底层审计和历史 KSU 交接的差集。
+“模块已处理”只表示当前 KernelSU 方案有真实动作；不等于 ROM/HAL 完整适配。
+
+一、当前模块已有真实动作
+
+1. 前台应用启动短时 sconfig=20，之后回落日常场景。
+   v1.8.2 起由 ROM 内置 k90-performance-bridge 独占写入 sconfig；KSU 模块
+   v1.8.8 起检测到该服务时不再启动第二个常驻调度循环，状态页直接读取
+   /data/vendor/k90max/stage37_perf.log 和硬件节点回读，避免双写与假委托日志。
+   复用其 42 条映射和 0→-1 回退，不再启动第二个 sconfig 写入者。
+2. 游戏包持续使用场景 19/20，45C 回退、41C 恢复。
+3. 游戏触控 240、日常触控 120，退出和熄屏恢复。
+4. 飞行模式时关闭移动数据和 Wi-Fi，退出后恢复原状态。
+5. 双击亮屏通知 Xiaomi TouchFeature mode 14。
+6. 快充仅在协议认证、低于 80%、低于 42C 时请求，不绕过 JEITA/温控。
+7. 侧滑反馈、晕动舒缓、注视不熄屏、环境色和指纹快启只启用已有消费者。
+8. 修复 screen_auto_brightness_adj 被错误写成原始背光值的问题；只修超出 [-1,1] 的值。
+9. 自动亮度曲线覆盖方案已撤回：实机 BrightnessModel 使用内置 expressiveness 曲线而非该 XML，且分区 overlay 会增加可检测挂载层。模块保持 SKIPMOUNT=true，仅在原偏移为 0 时一次性写入 -0.18，之后允许系统继续学习。
+10. 普通触控强度设为 MEDIUM，不替换小米振动固件。
+11. 合并安全的 OnePlus 应用层品牌/市场名属性，不改 Prague vendor/odm/radio 身份。
+
+二、已有开关或部分链路，但仍需继续验证/适配
+
+1. ColorOS 游戏助手节能/均衡/电竞三档到 sconfig 的精确映射。
+2. 色彩模式到 Xiaomi DisplayFeature/MTK PQ 的真实映射。
+3. 自动亮度中低段曲线、暗环境阈值、后置 ALS 与屏幕漏光补偿。
+4. ColorOS 301/302/307 等触感编号到 Xiaomi/Awinic 效果 ID 的映射。
+5. AOD 持续显示、全屏 AOD 入口、口袋灭屏和白天/夜间亮度。
+6. 指纹快启触摸按住事件、支付应用加密认证和 FIDO/Keystore 错误。
+7. 人脸重录成功率和算法 code 11。
+8. 小米相机连拍、录像、动图、第三方照片/录像回传和微信扫一扫。
+9. 充电协议名称、真实输入功率、电池健康和抗老化策略。
+10. 单/双卡、飞行模式、运营商显示、移动数据稳定性和网络协同。
+11. Xiaomi Swap HAL 与 ColorOS 内存扩展 UI。
+12. FrameMaster/Novatek、GPU/DDR/UFS 统计与游戏策略闭环。
+13. 注视不熄屏的 OPLUS AON 模型到 MTK APU/Neuron 后端。
+14. MiSound/Bose/Dolby 音效后端、DSP UUID 和互斥路由。
+15. 定位时间戳、AGPS 和 GNSS 精度问题。
+16. HDR、小红书 HDR、护眼、PWM/DC、环境色自适应和分辨率切换。
+17. 手电筒亮度档位、Wi-Fi 漫游/双 WLAN、空间录音、NFC 规则分发。
+
+三、KernelSU 模块不能安全伪造的项目
+
+1. OPPO TEE/RPMB/StrongBox 私钥、证明链、钱包/eID 安全凭据。
+2. 不存在的 1Hz LTPO/LTPS、90Hz 物理面板档位或独显硬件。
+3. 伪造 100W 实时功率、UFCS、双 NR、NandSwap 或硬件认证结果。
+4. 绕过支付软件、Root 检测、封号和服务器风控。
+
+查找手机当前实机根因：
+com.coloros.findmyphone 能启动，但反复查询
+vendor.oplus.hardware.cryptoeng.ICryptoeng/default 失败，RPMB 安全链无法工作。
+这需要 ROM 级 CryptoEng 协议桥并受硬件密钥边界限制；本模块不伪造成功。
+
+REA 静态审计补充：FindMyPhone 10.0.8 内置 FindRpmbProviderImpl，包含
+open/close find、锁屏密码验证、RSA/AES、RPMB 配置和设备标识等完整安全操作；
+它依赖 vendor.oppo.hardware.cryptoeng@1.0 的单一二进制命令接口。实机存在
+Android KeyMint、StrongBox 与 eSE，但缺少 OPLUS CryptoEng 服务。二者不是同一协议，
+不能通过属性或 shell 命令直接互换，必须实现并安全审计协议桥，且不能复制其他设备密钥。
